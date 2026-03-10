@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, MessageCircle, Gift, HelpCircle, Eye, Lock, Zap } from "lucide-react";
+import { Copy, Check, MessageCircle, Gift, HelpCircle, Eye, Lock, Zap, Banknote } from "lucide-react";
 import CrescentMoon from "../components/CrescentMoon";
 import { Toaster, toast } from "sonner";
 import Link from "next/link";
@@ -15,6 +15,7 @@ const modes = [
   { id: "simple", label: "Simple Wish", icon: <MessageCircle className="h-5 w-5" />, color: "border-accent", desc: "Send a heartfelt Eid wish" },
   { id: "fixed", label: "Fixed Eidi", icon: <Gift className="h-5 w-5" />, color: "border-primary", desc: "Set a fixed Eidi amount" },
   { id: "challenge", label: "Challenge Eidi", icon: <HelpCircle className="h-5 w-5" />, color: "border-destructive", desc: "Gamified quiz with Eidi reward" },
+  // { id: "guess", label: "Guess Eidi", icon: <Banknote className="h-5 w-5" />, color: "border-primary", desc: "Guess and win" },
 ];
 
 const emptyQuestion = () => ({
@@ -30,6 +31,7 @@ export default function WishCreator() {
   const [message, setMessage] = useState("");
   const [password, setPassword] = useState("");
   const [amount, setAmount] = useState("");
+  const [guessAmounts, setGuessAmounts] = useState(["", "", ""]);
   const [questions, setQuestions] = useState([
     emptyQuestion(), emptyQuestion(), emptyQuestion(), emptyQuestion(),
   ]);
@@ -52,6 +54,28 @@ export default function WishCreator() {
 
   // Payment State
   const [showBankDetails, setShowBankDetails] = useState(false);
+
+  // Admin Stats
+  const [adminStats, setAdminStats] = useState(null);
+
+  useEffect(() => {
+    if (isAuthenticated && activeUser?.role === "admin") {
+      const fetchAdminStats = async () => {
+        try {
+          const res = await fetch(`/api/admin?username=${activeUser.username}`);
+          if (res.ok) {
+            const data = await res.json();
+            setAdminStats(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch admin stats", error);
+        }
+      };
+      fetchAdminStats();
+    }
+  }, [isAuthenticated, activeUser]);
+
+
 
   const updateQuestion = (idx, field, value) => {
     setQuestions((prev) => {
@@ -77,6 +101,12 @@ export default function WishCreator() {
       toast.error("Please enter a valid Eidi amount");
       return;
     }
+    if (mode === "guess") {
+      if (guessAmounts.some((a) => !a || parseInt(a) <= 0)) {
+        toast.error("Please enter 3 valid Eidi amounts");
+        return;
+      }
+    }
     if (mode === "challenge") {
       for (let i = 0; i < 4; i++) {
         if (!questions[i].question || questions[i].options.some((o) => !o)) {
@@ -93,7 +123,8 @@ export default function WishCreator() {
       message: message.trim(),
       password: password.trim(),
       creator: activeUser?.username, // Add creator directly here
-      ...(mode !== "simple" && { amount: parseInt(amount) }),
+      ...(mode !== "simple" && mode !== "guess" && { amount: parseInt(amount) }),
+      ...(mode === "guess" && { guessAmounts: guessAmounts.map(a => parseInt(a)) }),
       ...(mode === "challenge" && { questions }),
     };
 
@@ -273,7 +304,7 @@ export default function WishCreator() {
                 <button
                   type="button"
                   onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")}
-                  className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                  className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer bg-white/10 px-2 py-1 rounded-full"
                 >
                   {authMode === "login" ? "Don't have an account? Sign up" : "Already have an account? Login"}
                 </button>
@@ -282,6 +313,34 @@ export default function WishCreator() {
           </motion.div>
         ) : (
           <>
+            {/* Admin Stats Banner */}
+            {activeUser?.role === "admin" && adminStats && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 grid grid-cols-2 gap-4"
+              >
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-emerald-100/50 uppercase tracking-wider font-semibold">Total Users</p>
+                    <p className="text-xl font-bold text-white">{adminStats.totalUsers}</p>
+                  </div>
+                </div>
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-amber-100/50 uppercase tracking-wider font-semibold">Paid Users</p>
+                    <p className="text-xl font-bold text-white">{adminStats.totalPaid}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* Dashboard Tabs Toggle */}
             <div className="flex justify-center mb-8">
               <div className="bg-black/40 border border-white/10 p-1 rounded-2xl inline-flex relative">
@@ -547,6 +606,32 @@ export default function WishCreator() {
                               className="bg-black/40 border-white/10 text-white"
                               min={1}
                             />
+                          </div>
+                        )}
+
+                        {mode === "guess" && (
+                          <div className="space-y-4">
+                            <Label className="text-emerald-50 block mb-2">3 Eidi Amounts (Recipient will pick one!)</Label>
+                            <div className="grid grid-cols-3 gap-3">
+                              {guessAmounts.map((val, idx) => (
+                                <div key={idx} className="space-y-1">
+                                  <Label className="text-xs text-emerald-100/40">Amount {idx + 1}</Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="e.g. 500"
+                                    value={val}
+                                    onChange={(e) => {
+                                      const newAmounts = [...guessAmounts];
+                                      newAmounts[idx] = e.target.value;
+                                      setGuessAmounts(newAmounts);
+                                    }}
+                                    className="bg-black/40 border-white/10 text-white"
+                                    min={1}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-emerald-100/60 font-mono italic">Recipient will see 3 cards and pick one to reveal their Eidi!</p>
                           </div>
                         )}
                       </div>

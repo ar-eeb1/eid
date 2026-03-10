@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@mui/icons-material": "^7.3.9",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.575.0",
     "mongoose": "^9.2.3",

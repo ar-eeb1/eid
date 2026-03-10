@@ -72,6 +72,24 @@ export default function ViewWish() {
     const [bankDetails, setBankDetails] = useState({ accountTitle: "", accountNumber: "", bankName: "" });
     const [isWithdrawn, setIsWithdrawn] = useState(false);
 
+    // Guess mode state
+    const [shuffledGuessAmounts, setShuffledGuessAmounts] = useState([]);
+    const [revealedAmount, setRevealedAmount] = useState(null);
+
+    useEffect(() => {
+        if (wishData?.mode === "guess" && wishData.guessAmounts) {
+            // Shuffle amounts on every refresh/initial load
+            const shuffled = [...wishData.guessAmounts].sort(() => Math.random() - 0.5);
+            setShuffledGuessAmounts(shuffled);
+        }
+
+        // Recover selected amount if already claimed
+        if (wishData?.mode === "guess" && (wishData.isClaimed || wishData.selectedAmount)) {
+            setRevealedAmount(wishData.selectedAmount);
+            setIsClaimed(true);
+        }
+    }, [wishData]);
+
     const handleUnlock = (e) => {
         e.preventDefault();
         if (password === wishData?.password) {
@@ -104,6 +122,7 @@ export default function ViewWish() {
     const calculateEidi = () => {
         if (!wishData) return 0;
         if (wishData.mode === "fixed") return wishData.amount;
+        if (wishData.mode === "guess") return wishData.selectedAmount || revealedAmount || 0;
         if (wishData.mode === "challenge") {
             // Priority 1: From DB if already completed and score is saved
             if (wishData.isClaimed || wishData.score !== undefined) {
@@ -124,11 +143,17 @@ export default function ViewWish() {
             await fetch(`/api/wish/${wishId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isClaimed: true, score })
+                body: JSON.stringify({ isClaimed: true, score, selectedAmount: revealedAmount })
             });
         } catch (e) {
             console.error("Error saving claim:", e);
         }
+    };
+
+    const handleGuessReveal = (amt) => {
+        if (revealedAmount !== null) return;
+        setRevealedAmount(amt);
+        // We don't call handleClaimEidi immediately, they reveal then enter bank details
     };
 
     const handleWithdraw = async () => {
@@ -141,6 +166,7 @@ export default function ViewWish() {
                 body: JSON.stringify({
                     isClaimed: true,
                     score,
+                    selectedAmount: revealedAmount,
                     bankDetails
                 })
             });
@@ -358,8 +384,41 @@ export default function ViewWish() {
                                         </motion.div>
                                     )}
 
-                                    {/* Final Claim State (For both Fixed and Challenge) */}
-                                    {(isClaimed || quizFinished) && (
+                                    {/* Guess Eidi Mode */}
+                                    {wishData.mode === "guess" && revealedAmount === null && !wishData.isClaimed && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.3 }}
+                                            className="space-y-6"
+                                        >
+                                            <div className="text-center">
+                                                <h3 className="text-2xl font-bold text-amber-100 mb-2">Pick your Eidi!</h3>
+                                                <p className="text-emerald-100/60">3 cards, 1 choice. Choose wisely!</p>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                                                {shuffledGuessAmounts.map((amt, idx) => (
+                                                    <motion.button
+                                                        key={idx}
+                                                        onClick={() => handleGuessReveal(amt)}
+                                                        className="h-48 rounded-[2rem] bg-gradient-to-br from-emerald-600/20 to-emerald-900/40 border border-emerald-500/30 flex flex-col items-center justify-center gap-4 group hover:border-emerald-400 hover:bg-emerald-500/10 transition-all shadow-xl shadow-black/40"
+                                                        whileHover={{ scale: 1.05, y: -5 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 1.5 + idx * 0.1 }}
+                                                    >
+                                                        <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                                                            <Gift className="w-8 h-8" />
+                                                        </div>
+                                                        <span className="text-lg font-bold tracking-widest text-emerald-100/40 group-hover:text-emerald-100 transition-colors uppercase">Card {idx + 1}</span>
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {/* Final Claim State (For all modes) */}
+                                    {(isClaimed || quizFinished || revealedAmount !== null) && (
                                         <motion.div
                                             key="final-claim"
                                             initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, type: "spring" }}
@@ -383,6 +442,15 @@ export default function ViewWish() {
                                                         </p>
                                                     )}
                                                 </>
+                                            ) : wishData.mode === "guess" ? (
+                                                <>
+                                                    <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Revealed!</h2>
+                                                    {!isWithdrawn ? (
+                                                        <p className="text-muted-foreground mb-6">Enter bank details to claim your revealed Eidi.</p>
+                                                    ) : (
+                                                        <p className="text-muted-foreground mb-6">Excellent choice! Happy Eid!</p>
+                                                    )}
+                                                </>
                                             ) : (
                                                 <>
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Claimed!</h2>
@@ -390,7 +458,7 @@ export default function ViewWish() {
                                                 </>
                                             )}
 
-                                            {(wishData.mode === "fixed" || isWithdrawn) && (
+                                            {(wishData.mode === "fixed" || wishData.mode === "guess" || isWithdrawn) && (
                                                 <motion.div className="rounded-2xl bg-gradient-gold p-1 mb-8" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring", stiffness: 150 }}>
                                                     <div className="rounded-xl bg-card p-8">
                                                         <p className="text-muted-foreground text-sm mb-2">
@@ -401,6 +469,9 @@ export default function ViewWish() {
                                                         </motion.p>
                                                         {wishData.mode === "challenge" && (
                                                             <p className="text-muted-foreground text-xs mt-2">out of Rs. {wishData.amount.toLocaleString()}</p>
+                                                        )}
+                                                        {wishData.mode === "guess" && !isWithdrawn && (
+                                                            <p className="text-muted-foreground text-sm mt-3 animate-pulse"> Revealing soon... </p>
                                                         )}
                                                     </div>
                                                 </motion.div>

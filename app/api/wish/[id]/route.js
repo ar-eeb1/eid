@@ -38,6 +38,7 @@ export async function PUT(req, { params }) {
                 $set: {
                     isClaimed: body.isClaimed,
                     score: body.score,
+                    selectedAmount: body.selectedAmount,
                     bankDetails: body.bankDetails,
                 },
             },

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req) {
     try {
-        const { username, password, action } = await req.json();
+        const { username, password, action, role } = await req.json();
 
         if (!username || !password || !action) {
             return NextResponse.json(
@@ -22,7 +22,16 @@ export async function POST(req) {
             if (user) {
                 return NextResponse.json({ message: "Username already exists" }, { status: 409 });
             }
-            user = new User({ username, password });
+            // determine role: default to 'user'
+            let assignedRole = "user";
+            if (role === "admin") {
+                // only grant admin if there is no other admin in the system
+                const existingAdmin = await User.findOne({ role: "admin" });
+                if (!existingAdmin) {
+                    assignedRole = "admin";
+                }
+            }
+            user = new User({ username, password, role: assignedRole });
             await user.save();
             return NextResponse.json({ user, message: "User created successfully" }, { status: 201 });
         } else if (action === "login") {
