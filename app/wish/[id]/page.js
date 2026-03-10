@@ -72,6 +72,9 @@ export default function ViewWish() {
     const [bankDetails, setBankDetails] = useState({ accountTitle: "", accountNumber: "", bankName: "" });
     const [isWithdrawn, setIsWithdrawn] = useState(false);
 
+    const hasBankInfo = bankDetails.accountTitle && bankDetails.accountNumber && bankDetails.bankName;
+    const showEidi = isWithdrawn || hasBankInfo;
+
     // Guess mode state
     const [shuffledGuessAmounts, setShuffledGuessAmounts] = useState([]);
     const [revealedAmount, setRevealedAmount] = useState(null);
@@ -311,9 +314,11 @@ export default function ViewWish() {
                                         >
                                             <Gift className="w-16 h-16 text-amber-400 mx-auto mb-4" />
                                             <h3 className="text-2xl font-bold text-amber-100 mb-2">You received Eidi!</h3>
-                                            <div className="text-5xl font-black text-amber-400 mb-8 tracking-tighter">
-                                                Rs. {wishData.amount}
-                                            </div>
+                                            {showEidi && (
+                                        <div className="text-5xl font-black text-amber-400 mb-8 tracking-tighter">
+                                            Rs. {wishData.amount}
+                                        </div>
+                                    )}
                                             <button onClick={handleClaimEidi} className="bg-amber-500 hover:bg-amber-400 text-[#05110d] font-bold py-4 px-12 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all text-lg hover:scale-105 inline-flex items-center gap-2">
                                                 Claim Your Eidi
                                             </button>
@@ -454,11 +459,13 @@ export default function ViewWish() {
                                             ) : (
                                                 <>
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Claimed!</h2>
-                                                    <p className="text-muted-foreground mb-6">Enjoy your gift!</p>
+                                                    <p className="text-muted-foreground mb-6">
+                                                        {showEidi ? "Enjoy your gift!" : "Enter bank details to reveal your Eidi."}
+                                                    </p>
                                                 </>
                                             )}
 
-                                            {(wishData.mode === "fixed" || wishData.mode === "guess" || isWithdrawn) && (
+                                            {showEidi && (
                                                 <motion.div className="rounded-2xl bg-gradient-gold p-1 mb-8" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring", stiffness: 150 }}>
                                                     <div className="rounded-xl bg-card p-8">
                                                         <p className="text-muted-foreground text-sm mb-2">
@@ -469,9 +476,6 @@ export default function ViewWish() {
                                                         </motion.p>
                                                         {wishData.mode === "challenge" && (
                                                             <p className="text-muted-foreground text-xs mt-2">out of Rs. {wishData.amount.toLocaleString()}</p>
-                                                        )}
-                                                        {wishData.mode === "guess" && !isWithdrawn && (
-                                                            <p className="text-muted-foreground text-sm mt-3 animate-pulse"> Revealing soon... </p>
                                                         )}
                                                     </div>
                                                 </motion.div>

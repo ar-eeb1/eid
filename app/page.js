@@ -16,6 +16,7 @@ const modes = [
   { id: "fixed", label: "Fixed Eidi", icon: <Gift className="h-5 w-5" />, color: "border-primary", desc: "Set a fixed Eidi amount" },
   { id: "challenge", label: "Challenge Eidi", icon: <HelpCircle className="h-5 w-5" />, color: "border-destructive", desc: "Gamified quiz with Eidi reward" },
   // { id: "guess", label: "Guess Eidi", icon: <Banknote className="h-5 w-5" />, color: "border-primary", desc: "Guess and win" },
+
 ];
 
 const emptyQuestion = () => ({
