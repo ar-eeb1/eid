@@ -250,6 +250,9 @@ export default function ViewWish() {
                                         >
                                             Eid Mubarak, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-amber-300">{wishData.receiverName}!</span>
                                         </motion.h1>
+                                        <h1 className="text-5xl py-2">
+                                            تَقَبَّلَ اللّٰهُ مِنَّا وَ مِنْکُمْ
+                                        </h1>
                                         <motion.p
                                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
                                             className="text-emerald-100/50 text-lg"
