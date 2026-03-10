@@ -227,7 +227,7 @@ export default function ViewWish() {
                                             type="password"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="Enter password (psst.. try 'secret')"
+                                            placeholder="Enter password"
                                             className={`w-full bg-black/40 border rounded-2xl px-6 py-4 text-center text-lg placeholder-white/30 focus:outline-none transition-all ${error ? "border-rose-500/50 focus:ring-rose-500/50" : "border-white/10 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
                                                 }`}
                                         />

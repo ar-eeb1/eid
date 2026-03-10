@@ -272,7 +272,7 @@ export default function WishCreator() {
                 <div className="space-y-2">
                   <Label className="text-emerald-50">Username</Label>
                   <Input
-                    placeholder="johndoe"
+                    placeholder="Enter your username"
                     value={authUsername}
                     onChange={(e) => setAuthUsername(e.target.value)}
                     className="bg-black/40 border-white/10 text-white"
