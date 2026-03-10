@@ -30,8 +30,8 @@ const amiri = Amiri({
 });
 
 export const metadata = {
-  title: "Eid",
-  description: "Eid",
+  title: "Eid Mubarak",
+  description: "Create and share Eid wishes in a unique way",
 };
 
 export default function RootLayout({ children }) {
