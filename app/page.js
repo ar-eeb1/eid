@@ -930,7 +930,7 @@ export default function WishCreator() {
 
 
                         {/* national */}
-                        <h3 className="text-xl font-bold text-white my-2">National users</h3>
+                        <h3 className="text-xl font-bold text-white my-2">Users from Pakistan</h3>
 
                         <div className="bg-black/40 border border-white/10 rounded-xl p-4 space-y-3 text-left">
                           <div className="flex justify-between items-center pb-3 border-b border-white/5">
@@ -938,10 +938,22 @@ export default function WishCreator() {
                             <span className="text-sm font-medium text-emerald-50">United Bank Limited</span>
                           </div>
                           <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                            <span className="text-xs text-emerald-100/50 uppercase tracking-wider">Account Title</span>
-                            <span className="text-sm font-medium text-emerald-50">Areeb Amir</span>
+                            <span className="text-xs text-emerald-100/50 uppercase tracking-wider">IBAN</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono text-emerald-400">PK19UNIL0109000337815072</span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText("PK19UNIL0109000337815072");
+                                  toast.success("Account number copied!");
+                                }}
+                                className="text-emerald-100/40 hover:text-emerald-400"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex justify-between items-center">
+                          {/* ACCOUNT NO */}
+                          <div className="flex justify-between items-center pb-3 border-b border-white/5">
                             <span className="text-xs text-emerald-100/50 uppercase tracking-wider">Account No</span>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-mono text-emerald-400">337815072</span>
@@ -956,6 +968,29 @@ export default function WishCreator() {
                               </button>
                             </div>
                           </div>
+                          <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                            <span className="text-xs text-emerald-100/50 uppercase tracking-wider">Account Title</span>
+                            <span className="text-sm font-medium text-emerald-50">Areeb Amir</span>
+                          </div>
+
+                          <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                            <span className="text-xs text-emerald-100/50 uppercase tracking-wider">Easypaisa</span>
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-mono text-emerald-400">03171232544</span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText("03171232544");
+                                    toast.success("Account number copied!");
+                                  }}
+                                  className="text-emerald-100/40 hover:text-emerald-400"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
                         </div>
 
                         {/* international */}
@@ -996,6 +1031,16 @@ export default function WishCreator() {
                           >
                             Contact WhatsApp: 03700182844
                           </a>
+                          
+                          <a
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg mt-2"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            href="https://wa.me/923700182844?text=Hi%20I%20want%20membership%20of%20your%20website"
+                          >
+                            OPEN WHATSAPP
+                          </a>
+
                         </p>
 
                         <Button
