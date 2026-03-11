@@ -72,13 +72,13 @@ export default function ViewWish() {
     const [bankDetails, setBankDetails] = useState({ accountTitle: "", accountNumber: "", bankName: "" });
     const [isWithdrawn, setIsWithdrawn] = useState(false);
 
-    const hasBankInfo = bankDetails.accountTitle && bankDetails.accountNumber && bankDetails.bankName;
-    // Show Eidi immediately after game completion or if already withdrawn
-    const showEidi = quizFinished || revealedAmount !== null || isClaimed || isWithdrawn || hasBankInfo;
-
     // Guess mode state
     const [shuffledGuessAmounts, setShuffledGuessAmounts] = useState([]);
     const [revealedAmount, setRevealedAmount] = useState(null);
+
+    const hasBankInfo = bankDetails.accountTitle && bankDetails.accountNumber && bankDetails.bankName;
+    // Show Eidi immediately after game completion or if already withdrawn
+    const showEidi = quizFinished || revealedAmount !== null || isClaimed || isWithdrawn || hasBankInfo;
 
     useEffect(() => {
         if (wishData?.mode === "guess" && wishData.guessAmounts) {
