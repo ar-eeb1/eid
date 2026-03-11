@@ -12,7 +12,7 @@ export default function LayoutContent({ children }) {
     return (
         <div className="flex min-h-screen ">
             {/* Left Vertical Ad Section */}
-            <aside className="lg:w-32 md:w-16 w-13 bg-emerald-900 sticky top-0 h-screen flex items-center justify-center ">
+            {/* <aside className="lg:w-32 md:w-16 w-13 bg-emerald-900 sticky top-0 h-screen flex items-center justify-center ">
                 <div className="rotate-270 flex items-between gap-30">
                     <button onClick={() => setOpen(true)} className="bg-emerald-500 rounded-full px-2  min-w-56 text-sm text-white cursor-pointer ">
                         Place your ad here!
@@ -22,7 +22,7 @@ export default function LayoutContent({ children }) {
                     </a>
                 </div>
 
-            </aside>
+            </aside> */}
 
             {/* Main Content */}
             <main className="flex-1 relative">
@@ -33,7 +33,7 @@ export default function LayoutContent({ children }) {
             </main>
 
             {/* global popup component */}
-            <Popup open={open} setOpen={setOpen} />
+            {/* <Popup open={open} setOpen={setOpen} /> */}
         </div>
     );
 }
