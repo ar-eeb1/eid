@@ -649,6 +649,9 @@ export default function WishCreator() {
                         </div>
                       </motion.button>
                     ))}
+                    <div className="text-center text-sm text-emerald-100/60 my-4 py-2 border border-white/10 rounded-2xl p-2">
+                      Keep checking — more modes coming soon.
+                    </div>
                   </motion.div>
                 )}
 
@@ -1031,7 +1034,7 @@ export default function WishCreator() {
                           >
                             Contact WhatsApp: 03700182844
                           </a>
-                          
+
                           <a
                             className="bg-green-500 text-white px-4 py-2 rounded-lg mt-2"
                             target="_blank"
