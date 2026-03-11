@@ -73,7 +73,8 @@ export default function ViewWish() {
     const [isWithdrawn, setIsWithdrawn] = useState(false);
 
     const hasBankInfo = bankDetails.accountTitle && bankDetails.accountNumber && bankDetails.bankName;
-    const showEidi = isWithdrawn || hasBankInfo;
+    // Show Eidi immediately after game completion or if already withdrawn
+    const showEidi = quizFinished || revealedAmount !== null || isClaimed || isWithdrawn || hasBankInfo;
 
     // Guess mode state
     const [shuffledGuessAmounts, setShuffledGuessAmounts] = useState([]);
@@ -108,9 +109,11 @@ export default function ViewWish() {
         if (selectedOption !== null) return; // Prevent changing answer
         setSelectedOption(index);
 
-        setTimeout(() => {
+        setTimeout(async () => {
+            let currentScore = score;
             if (index === wishData.questions[currentQuestionIndex].correctIndex) {
-                setScore(score + 1);
+                currentScore += 1;
+                setScore(currentScore);
             }
 
             if (currentQuestionIndex < wishData.questions.length - 1) {
@@ -118,6 +121,19 @@ export default function ViewWish() {
                 setSelectedOption(null);
             } else {
                 setQuizFinished(true);
+                // Save score immediately on finish
+                try {
+                    await fetch(`/api/wish/${wishId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            isClaimed: true,
+                            score: currentScore
+                        })
+                    });
+                } catch (e) {
+                    console.error("Error saving score on finish:", e);
+                }
             }
         }, 800);
     };
@@ -153,10 +169,22 @@ export default function ViewWish() {
         }
     };
 
-    const handleGuessReveal = (amt) => {
+    const handleGuessReveal = async (amt) => {
         if (revealedAmount !== null) return;
         setRevealedAmount(amt);
-        // We don't call handleClaimEidi immediately, they reveal then enter bank details
+        // Save revealed amount immediately
+        try {
+            await fetch(`/api/wish/${wishId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    isClaimed: true,
+                    selectedAmount: amt
+                })
+            });
+        } catch (e) {
+            console.error("Error saving guess reveal:", e);
+        }
     };
 
     const handleWithdraw = async () => {
@@ -437,31 +465,19 @@ export default function ViewWish() {
                                             {wishData.mode === "challenge" ? (
                                                 <>
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Challenge Complete!</h2>
-                                                    {isWithdrawn ? (
-                                                        <p className="text-muted-foreground mb-6">
-                                                            You got <span className="text-primary font-bold">{score}/{wishData.questions.length}</span> correct — {score * 25}%
-                                                        </p>
-                                                    ) : (
-                                                        <p className="text-muted-foreground mb-6">
-                                                            Quiz submitted! Enter your bank details to reveal your score and claim your Eidi.
-                                                        </p>
-                                                    )}
+                                                    <p className="text-muted-foreground mb-6">
+                                                        You got <span className="text-primary font-bold">{score}/{wishData.questions.length}</span> correct — {score * 25}%
+                                                    </p>
                                                 </>
                                             ) : wishData.mode === "guess" ? (
                                                 <>
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Revealed!</h2>
-                                                    {!isWithdrawn ? (
-                                                        <p className="text-muted-foreground mb-6">Enter bank details to claim your revealed Eidi.</p>
-                                                    ) : (
-                                                        <p className="text-muted-foreground mb-6">Excellent choice! Happy Eid!</p>
-                                                    )}
+                                                    <p className="text-muted-foreground mb-6">Excellent choice! Happy Eid!</p>
                                                 </>
                                             ) : (
                                                 <>
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Claimed!</h2>
-                                                    <p className="text-muted-foreground mb-6">
-                                                        {showEidi ? "Enjoy your gift!" : "Enter bank details to reveal your Eidi."}
-                                                    </p>
+                                                    <p className="text-muted-foreground mb-6">Enjoy your gift!</p>
                                                 </>
                                             )}
 

@@ -29,9 +29,29 @@ const amiri = Amiri({
   variable: "--font-amiri",
 });
 
+// export const metadata = {
+//   title: "Eid Mubarak",
+//   description: "Create and share Eid wishes in a unique way",
+// };
 export const metadata = {
-  title: "Eid Mubarak",
-  description: "Create and share Eid wishes in a unique way",
+  title: 'Wisheid',
+  description: 'Create and share Eid wishes in a unique way',
+  openGraph: {
+    title: 'Wisheid',
+    description: 'Create and share Eid wishes in a unique way',
+    url: 'https://wisheid.vercel.app/',
+    siteName: 'Wisheid',
+    images: [
+      {
+        url: 'https://res.cloudinary.com/dliahmplq/image/upload/v1773223749/Gemini_Generated_Image_s8sq21s8sq21s8sq_1_mwmrnk.png', // Ensure this file is in your /public folder
+        width: 1200,
+        height: 630,
+        alt: 'Wisheid Logo Preview',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({ children }) {

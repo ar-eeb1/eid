@@ -27,7 +27,7 @@ export default function LayoutContent({ children }) {
             {/* Main Content */}
             <main className="flex-1 relative">
                 <div className="absolute flex items-center justify-center">
-                    hello
+                    -
                 </div>
                 {children}
             </main>

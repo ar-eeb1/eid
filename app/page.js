@@ -58,23 +58,59 @@ export default function WishCreator() {
 
   // Admin Stats
   const [adminStats, setAdminStats] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isUpdatingUser, setIsUpdatingUser] = useState(null);
 
   useEffect(() => {
-    if (isAuthenticated && activeUser?.role === "admin") {
-      const fetchAdminStats = async () => {
+    if (isAuthenticated && (activeUser?.role === "admin" || activeUser?.role === "master")) {
+      const fetchAdminData = async () => {
         try {
-          const res = await fetch(`/api/admin?username=${activeUser.username}`);
+          const endpoint = activeUser.role === "master"
+            ? `/api/admin?username=${activeUser.username}${searchQuery ? `&search=${searchQuery}` : ""}`
+            : `/api/admin?username=${activeUser.username}`;
+
+          const res = await fetch(endpoint);
           if (res.ok) {
             const data = await res.json();
-            setAdminStats(data);
+            if (activeUser.role === "master") {
+              setAllUsers(data.users || []);
+              setAdminStats({ totalUsers: data.totalUsers, totalPaid: data.totalPaid });
+            } else {
+              setAdminStats(data);
+            }
           }
         } catch (error) {
-          console.error("Failed to fetch admin stats", error);
+          console.error("Failed to fetch admin data", error);
         }
       };
-      fetchAdminStats();
+      fetchAdminData();
     }
-  }, [isAuthenticated, activeUser]);
+  }, [isAuthenticated, activeUser, searchQuery]);
+
+  const toggleIsPaid = async (userId, currentStatus) => {
+    setIsUpdatingUser(userId);
+    try {
+      const res = await fetch(`/api/admin?username=${activeUser.username}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, isPaid: !currentStatus }),
+      });
+
+      if (res.ok) {
+        const { user } = await res.json();
+        setAllUsers((prev) => prev.map((u) => (u._id === userId ? { ...u, isPaid: user.isPaid } : u)));
+        toast.success(`User ${user.isPaid ? "activated" : "deactivated"} successfully`);
+      } else {
+        toast.error("Failed to update user status");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred");
+    } finally {
+      setIsUpdatingUser(null);
+    }
+  };
 
 
 
@@ -315,7 +351,7 @@ export default function WishCreator() {
         ) : (
           <>
             {/* Admin Stats Banner */}
-            {activeUser?.role === "admin" && adminStats && (
+            {(activeUser?.role === "admin" || activeUser?.role === "master") && adminStats && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -357,16 +393,31 @@ export default function WishCreator() {
                 >
                   My Dashboard
                 </button>
+                {activeUser?.role === "master" && (
+                  <button
+                    onClick={() => setCurrentTab("users")}
+                    className={`relative z-10 px-6 -mr-5 py-2.5 text-sm font-medium transition-colors cursor-pointer ${currentTab === "users" ? "text-[#05110d]" : "text-emerald-100/60 hover:text-white"}`}
+                  >
+                    User Management
+                  </button>
+                )}
                 {/* Active Slider */}
                 <motion.div
                   layoutId="activeTab"
                   className="absolute top-1 bottom-1 bg-linear-to-r from-emerald-500 to-teal-400 rounded-xl shadow-md"
                   initial={false}
                   animate={{
-                    left: currentTab === "create" ? "4px" : "50%",
-                    width: "calc(50% - 4px)"
+                    left: currentTab === "create" ? "4px" : currentTab === "dashboard" ? "calc(33.33% + 2px)" : "calc(66.66% + 2px)",
+                    width: activeUser?.role === "master" ? "calc(33.33% - 4px)" : "calc(50% - 4px)"
                   }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  style={{
+                    left: currentTab === "create"
+                      ? "4px"
+                      : activeUser?.role === "master"
+                        ? currentTab === "dashboard" ? "33.33%" : "66.66%"
+                        : "50%"
+                  }}
                 />
               </div>
             </div>
@@ -501,6 +552,75 @@ export default function WishCreator() {
                     ))}
                   </div>
                 )}
+              </motion.div>
+            ) : currentTab === "users" && activeUser?.role === "master" ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-2xl mx-auto space-y-6"
+              >
+                <div>
+                  <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-emerald-400 to-emerald-200">User Management</h2>
+                  <p className="text-emerald-100/60 text-sm">Update activation status for users</p>
+                </div>
+
+                <div className="relative">
+                  <Input
+                    placeholder="Search users by username..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-black/40 border-white/10 text-white pl-10 h-12 rounded-xl"
+                  />
+                  <Eye className="absolute left-3 top-3.5 w-5 h-5 text-emerald-100/30" />
+                </div>
+
+                <div className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-white/5">
+                        <th className="px-6 py-4 text-xs font-semibold text-emerald-100/50 uppercase tracking-wider">User</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-emerald-100/50 uppercase tracking-wider">Password</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-emerald-100/50 uppercase tracking-wider text-center">Status</th>
+                        <th className="px-6 py-4 text-xs font-semibold text-emerald-100/50 uppercase tracking-wider text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {allUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" className="px-6 py-12 text-center text-emerald-100/30 italic">
+                            No users found
+                          </td>
+                        </tr>
+                      ) : (
+                        allUsers.map((user) => (
+                          <tr key={user._id} className="hover:bg-white/5 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="font-medium text-white">{user.username}</div>
+                              <div className="text-xs text-emerald-100/40 uppercase">{user.role}</div>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-mono text-emerald-400">
+                              {user.password}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase border ${user.isPaid ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                {user.isPaid ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => toggleIsPaid(user._id, user.isPaid)}
+                                disabled={isUpdatingUser === user._id}
+                                className={`h-8 px-4 rounded-lg text-xs font-bold transition-all ${user.isPaid ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'}`}
+                              >
+                                {isUpdatingUser === user._id ? "..." : user.isPaid ? "Deactivate" : "Activate"}
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </motion.div>
             ) : (
               <>
