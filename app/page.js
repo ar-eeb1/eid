@@ -15,6 +15,7 @@ const modes = [
   { id: "simple", label: "Simple Wish", icon: <MessageCircle className="h-5 w-5" />, color: "border-accent", desc: "Send a heartfelt Eid wish" },
   { id: "fixed", label: "Fixed Eidi", icon: <Gift className="h-5 w-5" />, color: "border-primary", desc: "Set a fixed Eidi amount" },
   { id: "challenge", label: "Challenge Eidi", icon: <HelpCircle className="h-5 w-5" />, color: "border-destructive", desc: "Gamified quiz with Eidi reward" },
+  { id: "request", label: "Request Eidi", icon: <Banknote className="h-5 w-5" />, color: "border-blue-500", desc: "Request Eidi with bank details" },
   // { id: "guess", label: "Guess Eidi", icon: <Banknote className="h-5 w-5" />, color: "border-primary", desc: "Guess and win" },
 
 ];
@@ -33,6 +34,7 @@ export default function WishCreator() {
   const [password, setPassword] = useState("");
   const [amount, setAmount] = useState("");
   const [guessAmounts, setGuessAmounts] = useState(["", "", ""]);
+  const [bankDetails, setBankDetails] = useState({ accountTitle: "", accountNumber: "", bankName: "" });
   const [questions, setQuestions] = useState([
     emptyQuestion(), emptyQuestion(), emptyQuestion(), emptyQuestion(),
   ]);
@@ -138,6 +140,12 @@ export default function WishCreator() {
       toast.error("Please enter a valid Eidi amount");
       return;
     }
+    if (mode === "request") {
+      if (!bankDetails.accountTitle || !bankDetails.accountNumber || !bankDetails.bankName) {
+        toast.error("Please fill in all bank details");
+        return;
+      }
+    }
     if (mode === "guess") {
       if (guessAmounts.some((a) => !a || parseInt(a) <= 0)) {
         toast.error("Please enter 3 valid Eidi amounts");
@@ -160,9 +168,10 @@ export default function WishCreator() {
       message: message.trim(),
       password: password.trim(),
       creator: activeUser?.username, // Add creator directly here
-      ...(mode !== "simple" && mode !== "guess" && { amount: parseInt(amount) }),
+      ...(mode !== "simple" && mode !== "guess" && mode !== "request" && { amount: parseInt(amount) }),
       ...(mode === "guess" && { guessAmounts: guessAmounts.map(a => parseInt(a)) }),
       ...(mode === "challenge" && { questions }),
+      ...(mode === "request" && { bankDetails }),
     };
 
     if (mode === "simple") {
@@ -494,12 +503,12 @@ export default function WishCreator() {
                                   <div className="mt-1 text-sm text-emerald-50">
                                     <span className="text-emerald-100/60 mr-2">Eidi:</span>
                                     <strong className="text-emerald-400">
-                                      ₨{w.amount}
+                                      ₨{w.mode === 'request' ? (w.requestedAmount || 0) : w.amount}
                                     </strong>
                                   </div>
                                 </div>
                               ) : (
-                                <span className="text-sm text-amber-200/60">Pending View / Unclaimed</span>
+                                <span className="text-sm text-amber-200/60">{w.mode === 'request' ? "Awaiting Response" : "Pending View / Unclaimed"}</span>
                               )}
                             </div>
 
@@ -522,29 +531,27 @@ export default function WishCreator() {
                           </div>
 
                           {/* Right Bank Data */}
-                          {(w.mode === "challenge" || w.mode === "fixed") && (
+                          {((w.mode === "challenge" || w.mode === "fixed" || w.mode === "request") && w.bankDetails && w.bankDetails.accountNumber) && (
                             <div className="space-y-3 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
-                              <p className="text-xs text-emerald-100/50 uppercase tracking-wider font-semibold">Partner Bank Details</p>
-                              {w.bankDetails && w.bankDetails.accountNumber ? (
-                                <div className="text-sm space-y-1">
-                                  <div className="flex justify-between">
-                                    <span className="text-emerald-100/50">Bank:</span>
-                                    <span className="text-emerald-50 font-medium">{w.bankDetails.bankName}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-emerald-100/50">Title:</span>
-                                    <span className="text-emerald-50 font-medium">{w.bankDetails.accountTitle}</span>
-                                  </div>
-                                  <div className="flex justify-between mt-1 pt-1 border-t border-white/5">
-                                    <span className="text-emerald-100/50 mt-1">Acct:</span>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-emerald-400 font-mono text-xs">{w.bankDetails.accountNumber}</span>
-                                    </div>
+                              <p className="text-xs text-emerald-100/50 uppercase tracking-wider font-semibold">
+                                {w.mode === "request" ? "Your Bank Details" : "Partner Bank Details"}
+                              </p>
+                              <div className="text-sm space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-emerald-100/50">Bank:</span>
+                                  <span className="text-emerald-50 font-medium">{w.bankDetails.bankName}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-emerald-100/50">Title:</span>
+                                  <span className="text-emerald-50 font-medium">{w.bankDetails.accountTitle}</span>
+                                </div>
+                                <div className="flex justify-between mt-1 pt-1 border-t border-white/5">
+                                  <span className="text-emerald-100/50 mt-1">Acct:</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-emerald-400 font-mono text-xs">{w.bankDetails.accountNumber}</span>
                                   </div>
                                 </div>
-                              ) : (
-                                <p className="text-sm text-emerald-100/30 italic mt-2">No withdrawal details entered yet.</p>
-                              )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -730,6 +737,42 @@ export default function WishCreator() {
                               className="bg-black/40 border-white/10 text-white"
                               min={1}
                             />
+                          </div>
+                        )}
+
+                        {mode === "request" && (
+                          <div className="space-y-4">
+                            <Label className="text-emerald-50 block mb-2">Bank Details</Label>
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-emerald-100/40">Account Title</Label>
+                                <Input
+                                  placeholder="e.g. Areeb"
+                                  value={bankDetails.accountTitle}
+                                  onChange={(e) => setBankDetails(prev => ({ ...prev, accountTitle: e.target.value }))}
+                                  className="bg-black/40 border-white/10 text-white"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-emerald-100/40">Account Number</Label>
+                                <Input
+                                  placeholder="e.g. 1234567890123"
+                                  value={bankDetails.accountNumber}
+                                  onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                                  className="bg-black/40 border-white/10 text-white"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-emerald-100/40">Bank Name</Label>
+                                <Input
+                                  placeholder="e.g. Easypaisa"
+                                  value={bankDetails.bankName}
+                                  onChange={(e) => setBankDetails(prev => ({ ...prev, bankName: e.target.value }))}
+                                  className="bg-black/40 border-white/10 text-white"
+                                />
+                              </div>
+                            </div>
+                            <p className="text-xs text-emerald-100/60">Recipients will see these details after setting their Eidi amount</p>
                           </div>
                         )}
 

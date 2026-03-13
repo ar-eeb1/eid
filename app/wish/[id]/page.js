@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Gift, MessageSquare, CheckCircle2, X, Loader2 } from "lucide-react";
+import { Lock, Gift, MessageSquare, CheckCircle2, X, Loader2, Banknote } from "lucide-react";
 import CrescentMoon from "@/components/CrescentMoon";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
@@ -39,6 +39,10 @@ export default function ViewWish() {
                 // Load existing state
                 if (data.isClaimed) setIsClaimed(true);
                 if (data.bankDetails && data.bankDetails.accountNumber) setIsWithdrawn(true);
+                if (data.mode === "request" && data.requestedAmount) {
+                    setRequestSubmitted(true);
+                    setRequestAmount(data.requestedAmount.toString());
+                }
             } catch (err) {
                 console.error(err);
                 setFetchError(err.message || "Failed to load wish");
@@ -75,6 +79,10 @@ export default function ViewWish() {
     // Guess mode state
     const [shuffledGuessAmounts, setShuffledGuessAmounts] = useState([]);
     const [revealedAmount, setRevealedAmount] = useState(null);
+
+    // Request mode state
+    const [requestAmount, setRequestAmount] = useState("");
+    const [requestSubmitted, setRequestSubmitted] = useState(false);
 
     const hasBankInfo = bankDetails.accountTitle && bankDetails.accountNumber && bankDetails.bankName;
     // Show Eidi immediately after game completion or if already withdrawn
@@ -334,6 +342,56 @@ export default function ViewWish() {
 
                                 {/* Interaction Modes */}
                                 <AnimatePresence mode="wait">
+                                    {/* Request Eidi Mode */}
+                                    {wishData.mode === "request" && !requestSubmitted && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.3 }}
+                                            className="bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30 p-8 rounded-[2.5rem] text-center"
+                                        >
+                                            <Banknote className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                                            <h3 className="text-2xl font-bold text-blue-100 mb-4">Contribute to Eidi</h3>
+                                            <p className="text-blue-200/80 mb-6">How much would you like to give?</p>
+                                            <div className="space-y-4 max-w-xs mx-auto">
+                                                <input
+                                                    type="number"
+                                                    placeholder="Enter amount (Rs.)"
+                                                    value={requestAmount}
+                                                    onChange={(e) => setRequestAmount(e.target.value)}
+                                                    className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-white/50 focus:border-blue-400 focus:outline-none"
+                                                    min="1"
+                                                />
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!requestAmount || parseInt(requestAmount) < 500) {
+                                                            alert("Minimum Eidi amount is Rs. 500");
+                                                            return;
+                                                        }
+
+                                                        if (requestAmount && parseInt(requestAmount) >= 500) {
+                                                            setRequestSubmitted(true);
+                                                            // Save requested amount to DB
+                                                            try {
+                                                                await fetch(`/api/wish/${wishId}`, {
+                                                                    method: 'PUT',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        isClaimed: true,
+                                                                        requestedAmount: parseInt(requestAmount)
+                                                                    })
+                                                                });
+                                                            } catch (e) {
+                                                                console.error("Error saving requested amount:", e);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 px-6 rounded-xl transition-all hover:scale-105"
+                                                >
+                                                    Submit Amount
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
                                     {/* Fixed Eidi Mode */}
                                     {wishData.mode === "fixed" && !isClaimed && (
                                         <motion.div
@@ -451,7 +509,7 @@ export default function ViewWish() {
                                     )}
 
                                     {/* Final Claim State (For all modes) */}
-                                    {(isClaimed || quizFinished || revealedAmount !== null) && (
+                                    {((isClaimed || quizFinished || revealedAmount !== null) || (wishData.mode === "request" && requestSubmitted)) && (
                                         <motion.div
                                             key="final-claim"
                                             initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, type: "spring" }}
@@ -474,6 +532,11 @@ export default function ViewWish() {
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Revealed!</h2>
                                                     <p className="text-muted-foreground mb-6">Excellent choice! Happy Eid!</p>
                                                 </>
+                                            ) : wishData.mode === "request" ? (
+                                                <>
+                                                    <h2 className="text-2xl font-bold text-foreground mb-2">Thank You!</h2>
+                                                    <p className="text-muted-foreground mb-6">Here are the bank details to send Rs. {parseInt(requestAmount).toLocaleString()}</p>
+                                                </>
                                             ) : (
                                                 <>
                                                     <h2 className="text-2xl font-bold text-foreground mb-2">Eidi Claimed!</h2>
@@ -481,7 +544,7 @@ export default function ViewWish() {
                                                 </>
                                             )}
 
-                                            {showEidi && (
+                                            {showEidi && wishData.mode !== "request" && (
                                                 <motion.div className="rounded-2xl bg-gradient-gold p-1 mb-8" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring", stiffness: 150 }}>
                                                     <div className="rounded-xl bg-card p-8">
                                                         <p className="text-muted-foreground text-sm mb-2">
@@ -497,7 +560,38 @@ export default function ViewWish() {
                                                 </motion.div>
                                             )}
 
-                                            {calculateEidi() > 0 && !isWithdrawn ? (
+                                            {wishData.mode === "request" && requestSubmitted && (
+                                                <motion.div className="rounded-2xl bg-gradient-blue p-1 mb-8" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring", stiffness: 150 }}>
+                                                    <div className="rounded-xl bg-card p-8">
+                                                        <p className="text-muted-foreground text-sm mb-2">Send to</p>
+                                                        <motion.p className="text-3xl md:text-4xl font-bold text-blue-400" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+                                                            Rs. {parseInt(requestAmount).toLocaleString()}
+                                                        </motion.p>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {wishData.mode === "request" && requestSubmitted && wishData.bankDetails && (
+                                                <div className="bg-black/20 p-6 rounded-2xl mb-8 space-y-4 text-left border border-blue-500/10">
+                                                    <h4 className="text-blue-400 font-medium text-lg mb-4">Bank Details</h4>
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center py-2 border-b border-white/10">
+                                                            <span className="text-emerald-100/60">Account Title</span>
+                                                            <span className="text-white font-medium">{wishData.bankDetails.accountTitle}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center py-2 border-b border-white/10">
+                                                            <span className="text-emerald-100/60">Account Number</span>
+                                                            <span className="text-white font-medium font-mono">{wishData.bankDetails.accountNumber}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center py-2">
+                                                            <span className="text-emerald-100/60">Bank Name</span>
+                                                            <span className="text-white font-medium">{wishData.bankDetails.bankName}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {calculateEidi() > 0 && wishData.mode !== 'request' && !isWithdrawn ? (
                                                 <div className="bg-black/20 p-6 rounded-2xl mb-8 space-y-4 text-left border border-emerald-500/10">
                                                     <h4 className="text-emerald-400 font-medium text-lg mb-2">Withdraw Eidi to Bank</h4>
                                                     <input
